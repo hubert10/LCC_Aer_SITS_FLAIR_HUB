@@ -35,9 +35,6 @@ class PredictionWriter(BasePredictionWriter):
     def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx) -> None:
         for task in self.config['labels']:
             id_in_file = batch[f'ID_{task}']
-            print("id_in_file:", id_in_file)
-            print("id_in_file [0]:", id_in_file[0])
-
             task_num_classes = len(self.config["labels_configs"][task]["value_name"])
 
             if self.accumulated_confmats[task] is None:
@@ -57,9 +54,7 @@ class PredictionWriter(BasePredictionWriter):
 
 
             if self.config["tasks"]["write_files"]:
-
                 out_name = f"PRED_{id_in_file[0].split('/')[-1]}"
-                print("out_name:", out_name)
                 output_file = str(output_dir_predictions / out_name)
                 if self.config["tasks"]["georeferencing_output"]:
                     with rasterio.open(output_file, "w", **meta) as dst:
@@ -123,7 +118,7 @@ class PredictionWriter(BasePredictionWriter):
             confmat_accum = np.zeros((task_num_classes, task_num_classes), dtype=int)
 
             csv_path = Path(self.config["paths"]["test_csv"])
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(csv_path, sep=";")
             gt_paths = df[task].tolist()
 
             pred_dir = Path(self.output_dir) / f"predictions_{self.config['paths']['out_model_name']}" / task
@@ -132,8 +127,6 @@ class PredictionWriter(BasePredictionWriter):
 
             for gt_path in tqdm(gt_paths, desc=f"Metrics | {task}", unit="img"):
                 gt_path = Path(gt_path)
-                print("--------------------------------------------------gt_path", gt_path)
-                print("--------------------------------------------------pred_dir:", pred_dir)
                 pred_path = pred_dir / f"PRED_{gt_path.name}"
                 if not pred_path.exists():
                     missing_preds.append(pred_path)
