@@ -94,7 +94,7 @@ class flair_dataset(Dataset):
     def __len__(self):
         for task in self.tasks.values():
             if len(task["data_paths"]) > 0:
-                return  5 # len(task["data_paths"])
+                return len(task["data_paths"])
         return 0
 
     def __getitem__(self, index):
