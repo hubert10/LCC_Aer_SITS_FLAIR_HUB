@@ -130,7 +130,6 @@ class UTAE(nn.Module):
         self.out_conv = ConvBlock(nkernels=[decoder_widths[0]] + out_conv, padding_mode=padding_mode)
 
     def forward(self, input, batch_positions=None, return_att=False):
-        print("input:", input.shape)
         pad_mask = (
             (input == self.pad_value).all(dim=-1).all(dim=-1).all(dim=-1)
         )  # BxT pad mask

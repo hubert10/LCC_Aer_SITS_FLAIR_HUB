@@ -10,8 +10,6 @@ paths :
     global_mtd_folder: /my_data/FLAIR_HUB/GLOBAL_ALL_MTD/
     ckpt_model_path: 
 
-
-
 tasks: 
 
     train: True

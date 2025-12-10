@@ -20,9 +20,6 @@ class DecoderWrapper(nn.Module):
         self.segmentation_head = segmentation_head
 
     def forward(self, *features: Any) -> nn.Module:
-        print("features[0]:", features[0].shape)
-        print("features[1]:", features[1].shape)
-
         """
         Perform a forward pass through the decoder and segmentation head.
         Args:
@@ -31,7 +28,6 @@ class DecoderWrapper(nn.Module):
             nn.Module: Output after passing through the segmentation head.
         """
         decoder_output = self.decoder(*features) 
-        print("decoder_output:", decoder_output.shape) 
         return self.segmentation_head(decoder_output)
 
 

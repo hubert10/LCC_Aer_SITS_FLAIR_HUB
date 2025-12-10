@@ -16,9 +16,6 @@ def read_config(path: str) -> Dict[str, dict]:
     """
     combined_config = {}
 
-    print("path:", path)
-    print("path type:", type(path))
-
     if os.path.isfile(path) and path.endswith('.yaml'):
         with open(path, "r") as f:
             config = yaml.safe_load(f)
