@@ -194,6 +194,5 @@ class flair_dataset(Dataset):
             if isinstance(v, (np.ndarray, list)) and "ID_" not in k else v
             for k, v in batch.items()
         }
-        print("batch:", batch.keys())
         return batch
 

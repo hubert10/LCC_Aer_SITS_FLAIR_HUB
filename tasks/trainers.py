@@ -2,7 +2,6 @@ import os
 import sys
 import torch
 import torch.nn as nn
-
 from pathlib import Path
 from typing import Dict, Any
 from pytorch_lightning import Trainer
