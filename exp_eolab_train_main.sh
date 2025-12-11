@@ -11,12 +11,11 @@
 # #SBATCH --mail-type=BEGIN,END,FAIL
 # #SBATCH --output logs/exp_lcc_flair_hub_eolab_%j.out
 # #SBATCH --error logs/exp_lcc_flair_hub_eolab_%j.err
-# source load_modules.sh
 
 export CONDA_ENVS_PATH=$HOME/.conda/envs
 DATA_DIR="/my_data/"
 export DATA_DIR
-source /home/eouser/flair_venv/bin activate
-which python
+source /home/eouser/flair_venv/bin/activate
+which python3
 cd $HOME/exp_2026/LCC_Aer_SITS_FLAIR_HUB
 python main.py --config ./configs/train_main/ 
