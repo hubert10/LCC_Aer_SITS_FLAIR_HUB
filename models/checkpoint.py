@@ -229,6 +229,7 @@ def load_checkpoint(
     print("\n" + "#" * 65)
     path = conf['paths']['ckpt_model_path']
     print(f"→ Loading checkpoint from: {path}")
+    print(f"→ Loading checkpoint from: {os.path.isdir(path)}")
 
     if not path or not os.path.isfile(path) or not os.path.isdir(path):
         print("❌ Invalid checkpoint path.")
