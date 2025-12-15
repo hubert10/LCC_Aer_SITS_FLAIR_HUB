@@ -245,6 +245,7 @@ def load_checkpoint(
     elif os.path.isdir(path):
         path_folder = load_best_val_loss_ckpt(path)
         ckpt = torch.load(path_folder, map_location="cpu")
+        state_dict = ckpt.get("state_dict", ckpt)
     else:
         ckpt = torch.load(path, map_location="cpu")
         state_dict = ckpt.get("state_dict", ckpt)
