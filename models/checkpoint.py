@@ -232,7 +232,7 @@ def load_checkpoint(
     print(f"→ Loading checkpoint from: {os.path.isdir(path)}")
     print(f"→ Loading checkpoint from: {os.path.isfile(path)}")
 
-    if not path or not os.path.isfile(path) or not os.path.isdir(path):
+    if not path: # or not os.path.isfile(path):
         print("❌ Invalid checkpoint path.")
         if exit_on_fail:
             raise SystemExit()
