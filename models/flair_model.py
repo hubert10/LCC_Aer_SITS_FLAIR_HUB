@@ -3,10 +3,8 @@ import math
 import random
 import torch
 import torch.nn as nn
-
 from torch.nn import functional as F
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-
 from models.monotemp_model import FLAIR_Monotemp
 from models.multitemp_model import UTAE
 
