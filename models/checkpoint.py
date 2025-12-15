@@ -1,7 +1,8 @@
 import os
 import torch
 import torch.nn as nn
-
+import re
+from typing import Optional
 from typing import Dict, Set, List, Any
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from safetensors.torch import load_file as safe_load_file
@@ -172,6 +173,39 @@ def strip_model_prefix_if_needed(
         return state_dict
 
 
+def load_best_val_loss_ckpt(ckpt_dir: str) -> Optional[str]:
+    """
+    Returns the path to the checkpoint with the smallest val_loss.
+    Ignores checkpoints without val_loss in the filename (e.g. last.ckpt).
+    
+    Expected filename pattern:
+        ckpt-epoch=03-val_loss=0.58_test-lib.ckpt
+    """
+    val_loss_pattern = re.compile(r"val_loss=([0-9]*\.?[0-9]+)")
+    
+    best_ckpt = None
+    best_val_loss = float("inf")
+
+    for fname in os.listdir(ckpt_dir):
+        if not fname.endswith(".ckpt"):
+            continue
+
+        match = val_loss_pattern.search(fname)
+        if match is None:
+            continue  # skip last.ckpt, last-v1.ckpt, etc.
+
+        val_loss = float(match.group(1))
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_ckpt = fname
+
+    if best_ckpt is None:
+        return None
+
+    return os.path.join(ckpt_dir, best_ckpt)
+
+
+
 @rank_zero_only
 def load_checkpoint(
     conf: Dict[str, Any],
@@ -206,6 +240,9 @@ def load_checkpoint(
     if is_safe:
         print("→ Detected safetensors format.")
         state_dict = safe_load_file(path)
+    elif os.path.isdir(path):
+        path_folder = load_best_val_loss_ckpt(path)
+        ckpt = torch.load(path_folder, map_location="cpu")
     else:
         ckpt = torch.load(path, map_location="cpu")
         state_dict = ckpt.get("state_dict", ckpt)
