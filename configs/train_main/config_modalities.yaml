@@ -10,8 +10,8 @@ modalities:
         DEM_ELEV          : True
         SPOT_RGBI         : True
         SENTINEL2_TS      : True 
-        SENTINEL1-ASC_TS  : True 
-        SENTINEL1-DESC_TS : True 
+        SENTINEL1-ASC_TS  : False 
+        SENTINEL1-DESC_TS : False 
     
     inputs_channels: # starts at 1
         AERIAL_RGBI       : [4, 1, 2] 
