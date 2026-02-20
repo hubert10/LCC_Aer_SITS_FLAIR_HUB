@@ -8,9 +8,9 @@ from data.utils_data.augmentations import apply_numpy_augmentations
 from data.utils_data.label import reshape_label_ohe
 from data.utils_data.elevation import calc_elevation
 from data.utils_data.sentinel import (
-                                                reshape_sentinel,
-                                                filter_time_series,
-                                                temporal_average,
+    reshape_sentinel,
+    filter_time_series,
+    temporal_average,
 )
 
 
@@ -21,36 +21,36 @@ class flair_dataset(Dataset):
     Args:
         config (Dict): Configuration dictionary containing model and modality-specific settings, such as
             input channels, normalization parameters, and temporal processing options.
-        dict_paths (Dict): A dictionary mapping data modalities (e.g., "AERIAL_RGBI", "LABELS") 
-            to their corresponding file paths. 
-        use_augmentations (callable, optional): A callable function or transformation pipeline to 
+        dict_paths (Dict): A dictionary mapping data modalities (e.g., "AERIAL_RGBI", "LABELS")
+            to their corresponding file paths.
+        use_augmentations (callable, optional): A callable function or transformation pipeline to
             apply augmentations to the samples. Defaults to None.
      Methods:
         __len__() -> int:
             Returns the number of samples in the dataset.
         __getitem__(index: int) -> Dict:
-            Retrieves batch_elements. Applies 
-            normalization, temporal aggregation, and augmentations (if specified).           
+            Retrieves batch_elements. Applies
+            normalization, temporal aggregation, and augmentations (if specified).
 
     """
 
-    def __init__(self, config: Dict, dict_paths: Dict, use_augmentations: callable = None) -> None:
-        
+    def __init__(
+        self, config: Dict, dict_paths: Dict, use_augmentations: callable = None
+    ) -> None:
+
         self.config = config
-        
+
         # flair_dataset __init__
         if use_augmentations is True:
             self.use_augmentations = apply_numpy_augmentations
         else:
             self.use_augmentations = use_augmentations
 
-
         # Data and label setup (same as before)
         self._init_data_paths(dict_paths)
         self._init_label_info(dict_paths)
         self._init_normalization()
-        self.ref_date = config['models']['multitemp_model']['ref_date']
-
+        self.ref_date = config["models"]["multitemp_model"]["ref_date"]
 
     def _init_data_paths(self, dict_paths):
         self.list_patch = {}
@@ -59,12 +59,13 @@ class flair_dataset(Dataset):
             if enabled_flag and mod in dict_paths:
                 self.list_patch[mod] = np.array(dict_paths[mod])
                 if mod == "SENTINEL2_TS":
-                    self.list_patch["SENTINEL2_MSK-SC"] = np.array(dict_paths["SENTINEL2_MSK-SC"])
+                    self.list_patch["SENTINEL2_MSK-SC"] = np.array(
+                        dict_paths["SENTINEL2_MSK-SC"]
+                    )
 
         self.dict_dates = {}
         if "SENTINEL2_TS" in enabled:
             self.dict_dates["SENTINEL2_TS"] = dict_paths.get("DATES_S2", {})
-
 
     def _init_label_info(self, dict_paths):
         self.tasks = {}
@@ -73,7 +74,7 @@ class flair_dataset(Dataset):
             self.tasks[task] = {
                 "data_paths": np.array(dict_paths[task]),
                 "num_classes": len(label_conf["value_name"]),
-                "channels": [label_conf.get("label_channel_nomenclature", 1)]
+                "channels": [label_conf.get("label_channel_nomenclature", 1)],
             }
 
     def _init_normalization(self):
@@ -81,14 +82,20 @@ class flair_dataset(Dataset):
         enabled_modalities = self.config["modalities"]["inputs"]
         self.channels = {
             mod: self.config["modalities"]["inputs_channels"].get(mod, [])
-            for mod, active in enabled_modalities.items() if active
+            for mod, active in enabled_modalities.items()
+            if active
         }
         self.normalization = {
             mod: {
-                "mean": self.config["modalities"]["normalization"].get(f"{mod}_means", []),
-                "std": self.config["modalities"]["normalization"].get(f"{mod}_stds", [])
+                "mean": self.config["modalities"]["normalization"].get(
+                    f"{mod}_means", []
+                ),
+                "std": self.config["modalities"]["normalization"].get(
+                    f"{mod}_stds", []
+                ),
             }
-            for mod, active in enabled_modalities.items() if active
+            for mod, active in enabled_modalities.items()
+            if active
         }
 
     def __len__(self):
@@ -104,16 +111,19 @@ class flair_dataset(Dataset):
         for task, info in self.tasks.items():
             batch[f"ID_{task}"] = info["data_paths"][index]
             area_elem = info["data_paths"][index].split("/")[-1].split("_")
-            area_elem = "_".join([area_elem[0], area_elem[-2], area_elem[-1].split(".")[0]])
+            area_elem = "_".join(
+                [area_elem[0], area_elem[-2], area_elem[-1].split(".")[0]]
+            )
 
         # AERIAL_RGBI
         key = "AERIAL_RGBI"
         if key in self.list_patch:
             data = read_patch(self.list_patch[key][index], self.channels[key])
-            batch[key] = norm(data, 
-                              self.norm_type, 
-                              self.normalization[key]["mean"], 
-                              self.normalization[key]["std"]
+            batch[key] = norm(
+                data,
+                self.norm_type,
+                self.normalization[key]["mean"],
+                self.normalization[key]["std"],
             )
 
         # DEM_ELEV
@@ -122,7 +132,9 @@ class flair_dataset(Dataset):
             zdata = read_patch(self.list_patch[key][index])
             if self.config["modalities"]["pre_processings"]["calc_elevation"]:
                 elev_data = calc_elevation(zdata)
-                if self.config["modalities"]["pre_processings"]["calc_elevation_stack_dsm"]:
+                if self.config["modalities"]["pre_processings"][
+                    "calc_elevation_stack_dsm"
+                ]:
                     elev_data = np.stack((zdata[0, :, :], elev_data[0]), axis=0)
                 batch[key] = elev_data
             else:
@@ -131,24 +143,27 @@ class flair_dataset(Dataset):
                 batch[key],
                 self.norm_type,
                 self.normalization[key]["mean"],
-                self.normalization[key]["std"]
+                self.normalization[key]["std"],
             )
 
         # SPOT_RGBI
         key = "SPOT_RGBI"
         if key in self.list_patch:
             data = read_patch(self.list_patch[key][index], self.channels[key])
-            batch[key] = norm(data, 
-                              self.norm_type, 
-                              self.normalization[key]["mean"], 
-                              self.normalization[key]["std"]
+            batch[key] = norm(
+                data,
+                self.norm_type,
+                self.normalization[key]["mean"],
+                self.normalization[key]["std"],
             )
 
         # SENTINEL2_TS
         key = "SENTINEL2_TS"
         if key in self.list_patch:
             s2 = read_patch(self.list_patch[key][index])
-            s2 = reshape_sentinel(s2, chunk_size=10)[:, [x - 1 for x in self.channels[key]], :, :]
+            s2 = reshape_sentinel(s2, chunk_size=10)[
+                :, [x - 1 for x in self.channels[key]], :, :
+            ]
 
             s2_dates_dict = self.dict_dates[key][area_elem]
             s2_dates = s2_dates_dict["dates"]
@@ -159,19 +174,30 @@ class flair_dataset(Dataset):
                 msk = reshape_sentinel(msk, chunk_size=2)
                 idx_valid = filter_time_series(
                     msk,
-                    max_cloud_value=self.config["modalities"]["pre_processings"]["filter_sentinel2_max_cloud"],
-                    max_snow_value=self.config["modalities"]["pre_processings"]["filter_sentinel2_max_snow"],
-                    max_fraction_covered=self.config["modalities"]["pre_processings"]["filter_sentinel2_max_frac_cover"]
+                    max_cloud_value=self.config["modalities"]["pre_processings"][
+                        "filter_sentinel2_max_cloud"
+                    ],
+                    max_snow_value=self.config["modalities"]["pre_processings"][
+                        "filter_sentinel2_max_snow"
+                    ],
+                    max_fraction_covered=self.config["modalities"]["pre_processings"][
+                        "filter_sentinel2_max_frac_cover"
+                    ],
                 )
                 s2 = s2[np.where(idx_valid)[0]]
                 s2_dates = s2_dates[np.where(idx_valid)[0]]
                 s2_dates_diff = s2_dates_diff[np.where(idx_valid)[0]]
 
-            if self.config["modalities"]["pre_processings"]["temporal_average_sentinel2"]:
+            if self.config["modalities"]["pre_processings"][
+                "temporal_average_sentinel2"
+            ]:
                 s2, s2_dates_diff = temporal_average(
-                    s2, s2_dates,
-                    period=self.config["modalities"]["pre_processings"]["temporal_average_sentinel2"],
-                    ref_date=self.ref_date
+                    s2,
+                    s2_dates,
+                    period=self.config["modalities"]["pre_processings"][
+                        "temporal_average_sentinel2"
+                    ],
+                    ref_date=self.ref_date,
                 )
 
             batch[key] = s2
@@ -184,15 +210,19 @@ class flair_dataset(Dataset):
 
         # Apply numpy augmentations
         if callable(self.use_augmentations):
-            input_keys = [k for k, v in self.config["modalities"]["inputs"].items() if v]
+            input_keys = [
+                k for k, v in self.config["modalities"]["inputs"].items() if v
+            ]
             label_keys = list(self.config["labels"])
             batch = self.use_augmentations(batch, input_keys, label_keys)
 
         # Convert to torch tensors
         batch = {
-            k: torch.tensor(v, dtype=torch.float32)
-            if isinstance(v, (np.ndarray, list)) and "ID_" not in k else v
+            k: (
+                torch.tensor(v, dtype=torch.float32)
+                if isinstance(v, (np.ndarray, list)) and "ID_" not in k
+                else v
+            )
             for k, v in batch.items()
         }
         return batch
-

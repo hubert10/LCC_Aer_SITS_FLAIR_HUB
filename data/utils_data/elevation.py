@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def calc_elevation(arr: np.ndarray) -> np.ndarray:
     """
     Calculates the elevation difference between two input channels.

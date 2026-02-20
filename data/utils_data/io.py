@@ -8,7 +8,8 @@ try:
 except Exception:
     DATA_DIR = "/my_data"
 
-def read_patch(raster_file: str, channels: list = None) -> np.ndarray:   
+
+def read_patch(raster_file: str, channels: list = None) -> np.ndarray:
     """
     Reads patch data from a raster file.
     Args:
@@ -17,6 +18,6 @@ def read_patch(raster_file: str, channels: list = None) -> np.ndarray:
     Returns:
         np.ndarray: The extracted patch data.
     """
-    with rasterio.open(os.path.join(DATA_DIR,raster_file)) as src_img:
+    with rasterio.open(os.path.join(DATA_DIR, raster_file)) as src_img:
         array = src_img.read(channels) if channels else src_img.read()
     return array

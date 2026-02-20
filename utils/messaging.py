@@ -1,12 +1,13 @@
 import sys, os
 import datetime
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_only  
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 @rank_zero_only
 def start_msg():
-    print("""
+    print(
+        """
   _____ _        _    ___ ____       _   _ _   _ ____  
  |  ___| |      / \  |_ _|  _ \     | | | | | | | __ ) 
  | |_  | |     / _ \  | || |_) _____| |_| | | | |  _ \ 
@@ -16,9 +17,11 @@ _______________________________________________________
 
 #######################################################         
 ####################  LAUNCHING #######################
-    """)
-    print(datetime.datetime.now().strftime("Starting: %Y-%m-%d  %H:%M") + '\n')
-    print("""
+    """
+    )
+    print(datetime.datetime.now().strftime("Starting: %Y-%m-%d  %H:%M") + "\n")
+    print(
+        """
 [ ] Setting up Logger     . . .
 [ ] Creating output files . . . 
 [ ] Reading config files  . . .
@@ -30,12 +33,13 @@ _______________________________________________________
 
 @rank_zero_only
 def end_msg():
-    print("""
+    print(
+        """
 #######################################################         
 ####################  FINISHED  #######################    
-""")
-    print(datetime.datetime.now().strftime("Ending: %Y-%m-%d  %H:%M") + '\n')
-    
+"""
+    )
+    print(datetime.datetime.now().strftime("Ending: %Y-%m-%d  %H:%M") + "\n")
 
 
 @rank_zero_only
@@ -49,7 +53,7 @@ class Logger:
         log (TextIO): The file object to write logs to.
     """
 
-    def __init__(self, filename: str = 'Default.log') -> None:
+    def __init__(self, filename: str = "Default.log") -> None:
         """
         Initialize a Logger instance that writes both to stdout and a file.
 
@@ -58,7 +62,7 @@ class Logger:
         """
         filename = self._get_unique_filename(filename)
         self.terminal = sys.stdout
-        self.log = open(filename, 'w', encoding='utf-8')
+        self.log = open(filename, "w", encoding="utf-8")
         self.encoding = self.terminal.encoding
 
     def _get_unique_filename(self, filename: str) -> str:

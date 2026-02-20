@@ -127,7 +127,9 @@ class UTAE(nn.Module):
             d_k=d_k,
         )
         self.temporal_aggregator = Temporal_Aggregator(mode=agg_mode)
-        self.out_conv = ConvBlock(nkernels=[decoder_widths[0]] + out_conv, padding_mode=padding_mode)
+        self.out_conv = ConvBlock(
+            nkernels=[decoder_widths[0]] + out_conv, padding_mode=padding_mode
+        )
 
     def forward(self, input, batch_positions=None, return_att=False):
         pad_mask = (
@@ -296,7 +298,12 @@ class PositionalEncoder(nn.Module):
         self.T = T
         self.repeat = repeat
         self.denom = torch.pow(
-            T, 2 * torch.div(torch.arange(offset, offset + d).float(), 2, rounding_mode='floor') / d
+            T,
+            2
+            * torch.div(
+                torch.arange(offset, offset + d).float(), 2, rounding_mode="floor"
+            )
+            / d,
         )
         self.updated_location = False
 
@@ -403,7 +410,7 @@ class ScaledDotProductAttention(nn.Module):
             return output, attn, comp
         else:
             return output, attn
-        
+
 
 class TemporallySharedBlock(nn.Module):
     """
@@ -654,4 +661,3 @@ class Temporal_Aggregator(nn.Module):
                 return out
             elif self.mode == "mean":
                 return x.mean(dim=1)
-            

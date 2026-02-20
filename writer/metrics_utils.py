@@ -5,20 +5,16 @@ from pathlib import Path
 from typing import Dict
 
 from writer.metrics_core import (
-                                            class_IoU,
-                                            overall_accuracy,
-                                            class_precision,
-                                            class_recall,
-                                            class_fscore
+    class_IoU,
+    overall_accuracy,
+    class_precision,
+    class_recall,
+    class_fscore,
 )
 
 
 def compute_and_save_metrics(
-    confmat: np.ndarray,
-    config: Dict,
-    output_dir: str,
-    task: str,
-    mode: str = "predict"
+    confmat: np.ndarray, config: Dict, output_dir: str, task: str, mode: str = "predict"
 ) -> None:
     """
     Computes segmentation evaluation metrics from a confusion matrix and saves them to disk.
@@ -51,7 +47,7 @@ def compute_and_save_metrics(
         default_weights[i] = weight
 
     active_modalities = [
-        mod for mod, is_active in config['modalities']["inputs"].items() if is_active
+        mod for mod, is_active in config["modalities"]["inputs"].items() if is_active
     ]
     per_modality_exceptions = value_weights.get("per_modality_exceptions", {}) or {}
 
@@ -81,7 +77,13 @@ def compute_and_save_metrics(
     per_c_fscore, avg_fscore = class_fscore(per_c_precision, per_c_recall)
 
     metrics = {
-        "Avg_metrics_name": ["mIoU", "Overall Accuracy", "F-score", "Precision", "Recall"],
+        "Avg_metrics_name": [
+            "mIoU",
+            "Overall Accuracy",
+            "F-score",
+            "Precision",
+            "Recall",
+        ],
         "Avg_metrics": [avg_ious, ovr_acc, avg_fscore, avg_precision, avg_recall],
         "classes": class_names_cleaned,
         "per_class_iou": list(per_c_ious),
@@ -92,7 +94,9 @@ def compute_and_save_metrics(
         "per_class_modality_weights": modality_weights_cleaned,
     }
 
-    out_folder_metrics = Path(output_dir, f"metrics_{config['paths']['out_model_name']}", task)
+    out_folder_metrics = Path(
+        output_dir, f"metrics_{config['paths']['out_model_name']}", task
+    )
     out_folder_metrics.mkdir(exist_ok=True, parents=True)
     np.save(out_folder_metrics / f"confmat_{mode}.npy", confmat)
     with open(out_folder_metrics / "metrics.json", "w") as f:
@@ -114,10 +118,13 @@ def compute_and_save_metrics(
 
     for i, class_name in enumerate(class_names_cleaned):
         row = "{:<6} {:<25} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<15}".format(
-            i, class_name,
-            per_c_ious[i], per_c_fscore[i],
-            per_c_precision[i], per_c_recall[i],
-            default_weights_cleaned[i]
+            i,
+            class_name,
+            per_c_ious[i],
+            per_c_fscore[i],
+            per_c_precision[i],
+            per_c_recall[i],
+            default_weights_cleaned[i],
         )
         for mod in active_modalities:
             row += f" {modality_weights_cleaned[mod][i]:<15}"

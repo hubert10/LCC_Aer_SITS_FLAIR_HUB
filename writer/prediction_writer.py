@@ -15,6 +15,7 @@ from sklearn.metrics import confusion_matrix
 from writer.metrics_utils import compute_and_save_metrics
 from data.utils_data.io import DATA_DIR
 
+
 def exit_ddp():
     if dist.is_available() and dist.is_initialized():
         dist.destroy_process_group()
@@ -32,26 +33,42 @@ class PredictionWriter(BasePredictionWriter):
         self.output_dir = output_dir
         self.accumulated_confmats = {task: None for task in config["labels"]}
 
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx) -> None:
-        for task in self.config['labels']:
-            id_in_file = batch[f'ID_{task}']
+    def write_on_batch_end(
+        self,
+        trainer,
+        pl_module,
+        prediction,
+        batch_indices,
+        batch,
+        batch_idx,
+        dataloader_idx,
+    ) -> None:
+        for task in self.config["labels"]:
+            id_in_file = batch[f"ID_{task}"]
             task_num_classes = len(self.config["labels_configs"][task]["value_name"])
 
             if self.accumulated_confmats[task] is None:
-                self.accumulated_confmats[task] = np.zeros((task_num_classes, task_num_classes), dtype=int)
+                self.accumulated_confmats[task] = np.zeros(
+                    (task_num_classes, task_num_classes), dtype=int
+                )
 
-            output_dir_predictions = Path(self.output_dir, f"predictions_{self.config['paths']['out_model_name']}", task)
+            output_dir_predictions = Path(
+                self.output_dir,
+                f"predictions_{self.config['paths']['out_model_name']}",
+                task,
+            )
             output_dir_predictions.mkdir(exist_ok=True, parents=True)
 
-            preds = prediction[f'preds_{task}'].cpu().numpy().astype("uint8")
-            self.channel = self.config['labels_configs'][task].get('label_channel_nomenclature', 1)
+            preds = prediction[f"preds_{task}"].cpu().numpy().astype("uint8")
+            self.channel = self.config["labels_configs"][task].get(
+                "label_channel_nomenclature", 1
+            )
 
-            with rasterio.open(os.path.join(DATA_DIR,id_in_file[0]), 'r') as src_img:
+            with rasterio.open(os.path.join(DATA_DIR, id_in_file[0]), "r") as src_img:
                 target = src_img.read(self.channel).squeeze()
                 meta = src_img.profile
                 meta["count"] = 1
                 meta["compress"] = "lzw"
-
 
             if self.config["tasks"]["write_files"]:
                 out_name = f"PRED_{id_in_file[0].split('/')[-1]}"
@@ -62,32 +79,48 @@ class PredictionWriter(BasePredictionWriter):
                 else:
                     Image.fromarray(preds[0]).save(output_file, compression="tiff_lzw")
 
-            confmat = confusion_matrix(target.flatten(), preds[0].flatten(), labels=list(range(task_num_classes)))
+            confmat = confusion_matrix(
+                target.flatten(),
+                preds[0].flatten(),
+                labels=list(range(task_num_classes)),
+            )
             self.accumulated_confmats[task] += confmat
-
 
     def on_predict_epoch_end(self, trainer, pl_module) -> None:
         for task, local_confmat in self.accumulated_confmats.items():
             if local_confmat is None:
-                task_num_classes = len(self.config["labels_configs"][task]["value_name"])
-                local_confmat = np.zeros((task_num_classes, task_num_classes), dtype=int)
+                task_num_classes = len(
+                    self.config["labels_configs"][task]["value_name"]
+                )
+                local_confmat = np.zeros(
+                    (task_num_classes, task_num_classes), dtype=int
+                )
 
             tensor_confmat = torch.tensor(local_confmat, device=pl_module.device)
 
             if dist.is_available() and dist.is_initialized():
-                gathered = [torch.zeros_like(tensor_confmat) for _ in range(dist.get_world_size())]
+                gathered = [
+                    torch.zeros_like(tensor_confmat)
+                    for _ in range(dist.get_world_size())
+                ]
                 dist.all_gather(gathered, tensor_confmat)
 
                 if dist.get_rank() == 0:
                     global_confmat = sum([g.cpu().numpy() for g in gathered])
-                    compute_and_save_metrics(global_confmat, self.config, self.output_dir, task, mode="predict")
+                    compute_and_save_metrics(
+                        global_confmat,
+                        self.config,
+                        self.output_dir,
+                        task,
+                        mode="predict",
+                    )
             else:
                 global_confmat = tensor_confmat.cpu().numpy()
-                compute_and_save_metrics(global_confmat, self.config, self.output_dir, task, mode="predict")
+                compute_and_save_metrics(
+                    global_confmat, self.config, self.output_dir, task, mode="predict"
+                )
 
         exit_ddp()
-    
-
 
     @rank_zero_only
     def load_predictions_and_compute_metrics(self) -> None:
@@ -121,7 +154,11 @@ class PredictionWriter(BasePredictionWriter):
             df = pd.read_csv(csv_path, sep=";")
             gt_paths = df[task].tolist()
 
-            pred_dir = Path(self.output_dir) / f"predictions_{self.config['paths']['out_model_name']}" / task
+            pred_dir = (
+                Path(self.output_dir)
+                / f"predictions_{self.config['paths']['out_model_name']}"
+                / task
+            )
             missing_preds = []
             valid_preds = 0
 
@@ -133,10 +170,12 @@ class PredictionWriter(BasePredictionWriter):
                     continue
 
                 try:
-                    with rasterio.open(gt_path, 'r') as src_gt:
-                        channel = self.config['labels_configs'][task].get('label_channel_nomenclature', 1)
+                    with rasterio.open(gt_path, "r") as src_gt:
+                        channel = self.config["labels_configs"][task].get(
+                            "label_channel_nomenclature", 1
+                        )
                         gt = src_gt.read(channel)
-                    with rasterio.open(pred_path, 'r') as src_pred:
+                    with rasterio.open(pred_path, "r") as src_pred:
                         pred = src_pred.read(1)
 
                     if gt.ndim == 3:
@@ -144,25 +183,38 @@ class PredictionWriter(BasePredictionWriter):
                     if pred.ndim == 3:
                         pred = np.squeeze(pred, axis=0)
 
-                    assert gt.shape == pred.shape, f"Shape mismatch: GT {gt.shape}, Pred {pred.shape}"
-                   
+                    assert (
+                        gt.shape == pred.shape
+                    ), f"Shape mismatch: GT {gt.shape}, Pred {pred.shape}"
 
-                    confmat = confusion_matrix(gt.flatten(), pred.flatten(), labels=list(range(task_num_classes)))
+                    confmat = confusion_matrix(
+                        gt.flatten(),
+                        pred.flatten(),
+                        labels=list(range(task_num_classes)),
+                    )
                     confmat_accum += confmat
                     valid_preds += 1
 
                 except Exception as e:
                     print(f"[ERROR] Failed to process {gt_path.name}: {e}")
-            
+
             print(f"Confmat sum: {confmat_accum.sum()}")
             print(f"Total GT images processed: {valid_preds} / {len(gt_paths)}")
 
             if valid_preds > 0:
                 self.accumulated_confmats[task] = confmat_accum
-                compute_and_save_metrics(confmat_accum, self.config, self.output_dir, task, mode="metrics_only")
+                compute_and_save_metrics(
+                    confmat_accum,
+                    self.config,
+                    self.output_dir,
+                    task,
+                    mode="metrics_only",
+                )
                 any_predictions_found = True
 
         if not any_predictions_found:
-            print("\n[ERROR] No predictions found at all. Metrics will not be calculated.\n")
+            print(
+                "\n[ERROR] No predictions found at all. Metrics will not be calculated.\n"
+            )
 
         exit_ddp()

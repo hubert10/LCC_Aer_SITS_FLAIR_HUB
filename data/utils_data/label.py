@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def reshape_label_ohe(arr: np.ndarray, num_classes: int) -> np.ndarray:
     """
     Converts a label array into one-hot-encoded format.

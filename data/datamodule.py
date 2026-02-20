@@ -7,7 +7,7 @@ from data.utils_data.padding import pad_collate_flair
 
 class FlairDataModule(LightningDataModule):
     def __init__(
-        self, 
+        self,
         config,
         dict_train: Optional[Dict] = None,
         dict_val: Optional[Dict] = None,
@@ -59,14 +59,22 @@ class FlairDataModule(LightningDataModule):
 
     def _setup_train_val_datasets(self):
         """Helper function to set up the training and validation datasets."""
-        self.train_dataset = self._create_flair_dataset(self.dict_train, self.use_augmentations)
-        self.val_dataset = self._create_flair_dataset(self.dict_val, use_augmentations=None)
+        self.train_dataset = self._create_flair_dataset(
+            self.dict_train, self.use_augmentations
+        )
+        self.val_dataset = self._create_flair_dataset(
+            self.dict_val, use_augmentations=None
+        )
 
     def _setup_pred_dataset(self):
         """Helper function to set up the prediction dataset."""
-        self.pred_dataset = self._create_flair_dataset(self.dict_test, use_augmentations=None)
+        self.pred_dataset = self._create_flair_dataset(
+            self.dict_test, use_augmentations=None
+        )
 
-    def _create_flair_dataset(self, dict_paths: Dict[str, str], use_augmentations: Optional[bool]) -> "flair_dataset":
+    def _create_flair_dataset(
+        self, dict_paths: Dict[str, str], use_augmentations: Optional[bool]
+    ) -> "flair_dataset":
         """
         Helper function to create a flair dataset.
         Args:
@@ -76,12 +84,12 @@ class FlairDataModule(LightningDataModule):
             flair_dataset: The created dataset.
         """
         return flair_dataset(
-            self.config,
-            dict_paths=dict_paths,
-            use_augmentations=use_augmentations
+            self.config, dict_paths=dict_paths, use_augmentations=use_augmentations
         )
 
-    def _create_dataloader(self, dataset, batch_size: int, shuffle: bool, drop_last: bool):
+    def _create_dataloader(
+        self, dataset, batch_size: int, shuffle: bool, drop_last: bool
+    ):
         """
         Helper function to create a DataLoader for a given dataset.
         Args:
@@ -98,27 +106,29 @@ class FlairDataModule(LightningDataModule):
             shuffle=shuffle,
             num_workers=self.num_workers,
             drop_last=drop_last,
-            collate_fn=pad_collate_flair
+            collate_fn=pad_collate_flair,
         )
 
     def train_dataloader(self):
         """
         Returns the DataLoader for training.
         """
-        return self._create_dataloader(self.train_dataset, self.batch_size, shuffle=True, drop_last=self.drop_last)
+        return self._create_dataloader(
+            self.train_dataset, self.batch_size, shuffle=True, drop_last=self.drop_last
+        )
 
     def val_dataloader(self):
         """
         Returns the DataLoader for validation.
         """
-        return self._create_dataloader(self.val_dataset, self.batch_size, shuffle=False, drop_last=self.drop_last)
+        return self._create_dataloader(
+            self.val_dataset, self.batch_size, shuffle=False, drop_last=self.drop_last
+        )
 
     def predict_dataloader(self):
         """
         Returns the DataLoader for prediction.
         """
-        return self._create_dataloader(self.pred_dataset, batch_size=1, shuffle=False, drop_last=False)
-
-
-
-    
+        return self._create_dataloader(
+            self.pred_dataset, batch_size=1, shuffle=False, drop_last=False
+        )

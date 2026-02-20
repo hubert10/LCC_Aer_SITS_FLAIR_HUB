@@ -6,11 +6,11 @@ from typing import Dict, Any
 
 class DecoderWrapper(nn.Module):
     """Handles sequential execution of the decoder and segmentation head."""
-    
+
     def __init__(self, decoder: nn.Module, segmentation_head: nn.Module) -> None:
         """
         Initialize the DecoderWrapper with a decoder and a segmentation head.
-        
+
         Args:
             decoder (nn.Module): The decoder module.
             segmentation_head (nn.Module): The segmentation head module.
@@ -27,20 +27,20 @@ class DecoderWrapper(nn.Module):
         Returns:
             nn.Module: Output after passing through the segmentation head.
         """
-        decoder_output = self.decoder(*features) 
+        decoder_output = self.decoder(*features)
         return self.segmentation_head(decoder_output)
 
 
 class FLAIR_Monotemp(nn.Module):
     """Monotemporal FLAIR model for segmentation."""
-    
+
     def __init__(
-        self, 
-        config: Dict[str, Any], 
-        channels: int = 3, 
-        classes: int = 19, 
-        img_size: int = 512, 
-        return_type: str = 'encoder'
+        self,
+        config: Dict[str, Any],
+        channels: int = 3,
+        classes: int = 19,
+        img_size: int = 512,
+        return_type: str = "encoder",
     ) -> None:
         """
         Initialize the FLAIR_Monotemp model with the provided configuration.
@@ -58,11 +58,15 @@ class FLAIR_Monotemp(nn.Module):
         super().__init__()
 
         self.return_type = return_type
-        assert self.return_type in ['encoder', 'decoder'], \
-            'return_type should be one of ["encoder", "decoder"]'
+        assert self.return_type in [
+            "encoder",
+            "decoder",
+        ], 'return_type should be one of ["encoder", "decoder"]'
 
-        encoder, decoder = config['models']['monotemp_model']['arch'].split('-')[0], \
-                            config['models']['monotemp_model']['arch'].split('-')[1]
+        encoder, decoder = (
+            config["models"]["monotemp_model"]["arch"].split("-")[0],
+            config["models"]["monotemp_model"]["arch"].split("-")[1],
+        )
 
         try:
             self.seg_model = smp.create_model(
@@ -77,7 +81,7 @@ class FLAIR_Monotemp(nn.Module):
             try:
                 self.seg_model = smp.create_model(
                     arch=decoder,
-                    encoder_name='tu-' + encoder,
+                    encoder_name="tu-" + encoder,
                     classes=classes,
                     in_channels=channels,
                     img_size=img_size,
@@ -86,12 +90,14 @@ class FLAIR_Monotemp(nn.Module):
                 # Fallback: no img_size
                 self.seg_model = smp.create_model(
                     arch=decoder,
-                    encoder_name='tu-' + encoder,
+                    encoder_name="tu-" + encoder,
                     classes=classes,
                     in_channels=channels,
                 )
 
-        if self.return_type == 'encoder':
+        if self.return_type == "encoder":
             self.seg_model = self.seg_model.encoder
-        elif self.return_type == 'decoder':
-            self.seg_model = DecoderWrapper(self.seg_model.decoder, self.seg_model.segmentation_head)
+        elif self.return_type == "decoder":
+            self.seg_model = DecoderWrapper(
+                self.seg_model.decoder, self.seg_model.segmentation_head
+            )

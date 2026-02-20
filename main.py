@@ -1,5 +1,6 @@
 import argparse
 import sys
+import torch
 from pathlib import Path
 from tasks.stages import training_stage, predict_stage
 from tasks.module_setup import build_data_module
@@ -8,6 +9,8 @@ from utils.messaging import start_msg, end_msg, Logger
 from utils.config_io import setup_environment, copy_csv_and_config
 from utils.config_display import print_recap
 
+# handling warnings
+torch.set_float32_matmul_precision("medium")
 
 argParser = argparse.ArgumentParser()
 argParser.add_argument("--config", help="Path to the .yaml config file", required=True)
@@ -15,14 +18,19 @@ argParser.add_argument("--config", help="Path to the .yaml config file", require
 
 def main():
     """
-    Main function to set up the training and prediction process. It reads the config file, sets up the output folder, 
+    Main function to set up the training and prediction process. It reads the config file, sets up the output folder,
     initiates the training and prediction stages, and tracks emissions if enabled.
     """
 
     args = argParser.parse_args()
     config, out_dir = setup_environment(args)
     sys.stdout = Logger(
-        Path(config['paths']["out_folder"], config['paths']["out_model_name"], f'flair-compute{config["paths"]["out_model_name"]}.log').as_posix())
+        Path(
+            config["paths"]["out_folder"],
+            config["paths"]["out_model_name"],
+            f'flair-compute{config["paths"]["out_model_name"]}.log',
+        ).as_posix()
+    )
 
     start_msg()
 
@@ -31,22 +39,24 @@ def main():
     print_recap(config, dict_train, dict_val, dict_test)
 
     # Copy relevant files for tracking
-    if config['saving']["cp_csv_and_conf_to_output"]:
+    if config["saving"]["cp_csv_and_conf_to_output"]:
         copy_csv_and_config(config, out_dir, args)
 
     # Get LightningDataModule
-    dm = build_data_module(config, dict_train=dict_train, dict_val=dict_val, dict_test=dict_test)
+    dm = build_data_module(
+        config, dict_train=dict_train, dict_val=dict_val, dict_test=dict_test
+    )
 
     # Initialize variable for weights
     trained_state_dict = None
 
     # Training
-    if config['tasks']['train']:
+    if config["tasks"]["train"]:
         trained_state_dict = training_stage(config, dm, out_dir)
 
     # Inference
-    if config['tasks'].get('predict') or config['tasks'].get('metrics_only'):
-        out_dir_predict = Path(out_dir, 'results_' + config['paths']["out_model_name"])
+    if config["tasks"].get("predict") or config["tasks"].get("metrics_only"):
+        out_dir_predict = Path(out_dir, "results_" + config["paths"]["out_model_name"])
         out_dir_predict.mkdir(parents=True, exist_ok=True)
         predict_stage(config, dm, out_dir_predict, trained_state_dict)
     else:
@@ -54,5 +64,15 @@ def main():
 
     end_msg()
 
+
 if __name__ == "__main__":
     main()
+
+
+
+
+# scp -r nhgnkany@transfer.cluster.uni-hannover.de:/bigwork/nhgnkany/Results/MISR_S2_Aer_LCC_X10_MI_MO_Exp_AUX_Revised_Diff_Denoising_Multi_Res/results/checkpoints/misr/srdiff_highresnet_ltae_ckpt/results_0_/ D:\kanyamahanga\Datasets\MISR_S2_Aer_LCC_X10_MI_MO_Exp_AUX_Revised_Diff_Denoising_Multi_Res
+
+# scp -r nhgnkany@transfer.cluster.uni-hannover.de:/bigwork/nhgnkany/Results/MISR_S2_Aer_LCC_X10_MI_MO_Exp_AUX_Revised_Diff_Denoising_Spec_Matching_Multi_Res/results/checkpoints/misr/srdiff_highresnet_ltae_ckpt/results_0_/ D:\kanyamahanga\Datasets\MISR_S2_Aer_LCC_X10_MI_MO_Exp_AUX_Revised_Diff_Denoising_Spec_Matching_Multi_Res
+
+# scp -r D:\kanyamahanga\Datasets\FLAIR\flair_2_aerial_test.zip nhgnkany@transfer.cluster.uni-hannover.de:/bigwork/nhgnkany/FLAIR

@@ -22,15 +22,17 @@ def reinit_param(state_dict: dict, model_dict: dict, key: str) -> bool:
         return False
     with torch.no_grad():
         param = torch.empty_like(model_dict[key])
-        if 'weight' in key:
+        if "weight" in key:
             nn.init.xavier_uniform_(param)
-        elif 'bias' in key:
+        elif "bias" in key:
             nn.init.zeros_(param)
         state_dict[key] = param
     return True
 
 
-def interpolate_bias_table(ckpt_tensor: torch.Tensor, model_tensor: torch.Tensor) -> torch.Tensor:
+def interpolate_bias_table(
+    ckpt_tensor: torch.Tensor, model_tensor: torch.Tensor
+) -> torch.Tensor:
     """
     Resizes a relative position bias table from a checkpoint to match the shape required by the model.
     Args:
@@ -44,14 +46,20 @@ def interpolate_bias_table(ckpt_tensor: torch.Tensor, model_tensor: torch.Tensor
     if old_len == new_len:
         return ckpt_tensor
 
-    size_old = int(old_len ** 0.5)
-    size_new = int(new_len ** 0.5)
+    size_old = int(old_len**0.5)
+    size_new = int(new_len**0.5)
 
-    assert size_old * size_old == old_len, f"Checkpoint bias table shape {old_len} is not square"
-    assert size_new * size_new == new_len, f"Model bias table shape {new_len} is not square"
+    assert (
+        size_old * size_old == old_len
+    ), f"Checkpoint bias table shape {old_len} is not square"
+    assert (
+        size_new * size_new == new_len
+    ), f"Model bias table shape {new_len} is not square"
 
     bias = ckpt_tensor.reshape(1, size_old, size_old, num_heads).permute(0, 3, 1, 2)
-    bias = torch.nn.functional.interpolate(bias, size=(size_new, size_new), mode='bicubic', align_corners=False)
+    bias = torch.nn.functional.interpolate(
+        bias, size=(size_new, size_new), mode="bicubic", align_corners=False
+    )
     bias = bias.permute(0, 2, 3, 1).reshape(new_len, num_heads)
     return bias
 
@@ -74,7 +82,7 @@ def resolve_key(key: str, state_dict: dict) -> str | None:
     """
     candidates = [key]
     if key.startswith("model."):
-        candidates.append(key[len("model."):])
+        candidates.append(key[len("model.") :])
     else:
         candidates.append(f"model.{key}")
 
@@ -93,7 +101,7 @@ def check_and_reinit_layer(
     matched_tasks: Set[str],
     reinit_tasks: Set[str],
     task_label: str,
-    reinit_counter: List[int]
+    reinit_counter: List[int],
 ) -> None:
     """
     Verifies the compatibility of a task-specific classification layer and reinitializes it if needed.
@@ -108,14 +116,16 @@ def check_and_reinit_layer(
         reinit_tasks (Set[str]): Set to record tasks that required reinitialization.
         task_label (str): Task name label for logging and tracking.
         reinit_counter (List[int]): Single-element list tracking number of reinitializations (mutable counter).
-    """    
+    """
     real_key_weight = resolve_key(key_weight, state_dict)
     real_key_bias = resolve_key(key_bias, state_dict)
 
     if real_key_weight:
         ckpt_classes = state_dict[real_key_weight].shape[0]
         if ckpt_classes != expected_classes:
-            print(f"→ Mismatch: {real_key_weight}: ckpt={ckpt_classes}, config={expected_classes}")
+            print(
+                f"→ Mismatch: {real_key_weight}: ckpt={ckpt_classes}, config={expected_classes}"
+            )
             reinit_counter[0] += reinit_param(state_dict, model_dict, key_weight)
             if real_key_bias:
                 reinit_counter[0] += reinit_param(state_dict, model_dict, key_bias)
@@ -134,7 +144,7 @@ def check_and_reinit_layer(
 def strip_model_prefix_if_needed(
     state_dict: Dict[str, torch.Tensor],
     model_dict: Dict[str, torch.Tensor],
-    verbose: bool = False
+    verbose: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Removes the 'model.' prefix from checkpoint keys if it's not present in the model's keys.
@@ -158,7 +168,7 @@ def strip_model_prefix_if_needed(
         strip_count = 0
         for k, v in state_dict.items():
             if k.startswith("model."):
-                new_k = k[len("model."):]
+                new_k = k[len("model.") :]
                 stripped_state_dict[new_k] = v
                 strip_count += 1
                 if verbose and strip_count <= 5:
@@ -177,12 +187,12 @@ def load_best_val_loss_ckpt(ckpt_dir: str) -> Optional[str]:
     """
     Returns the path to the checkpoint with the smallest val_loss.
     Ignores checkpoints without val_loss in the filename (e.g. last.ckpt).
-    
+
     Expected filename pattern:
         ckpt-epoch=03-val_loss=0.58_test-lib.ckpt
     """
     val_loss_pattern = re.compile(r"val_loss=([0-9]*\.?[0-9]+)")
-    
+
     best_ckpt = None
     best_val_loss = float("inf")
 
@@ -205,12 +215,9 @@ def load_best_val_loss_ckpt(ckpt_dir: str) -> Optional[str]:
     return os.path.join(ckpt_dir, best_ckpt)
 
 
-
 @rank_zero_only
 def load_checkpoint(
-    conf: Dict[str, Any],
-    seg_module: nn.Module,
-    exit_on_fail: bool = True
+    conf: Dict[str, Any], seg_module: nn.Module, exit_on_fail: bool = True
 ) -> None:
     """
     Loads model weights from a checkpoint into the segmentation module. Handles:
@@ -227,12 +234,10 @@ def load_checkpoint(
     """
 
     print("\n" + "#" * 65)
-    path = conf['paths']['ckpt_model_path']
+    path = conf["paths"]["ckpt_model_path"]
     print(f"→ Loading checkpoint from: {path}")
-    print(f"→ Loading checkpoint from: {os.path.isdir(path)}")
-    print(f"→ Loading checkpoint from: {os.path.isfile(path)}")
 
-    if not path: # or not os.path.isfile(path):
+    if not path:  # or not os.path.isfile(path):
         print("❌ Invalid checkpoint path.")
         if exit_on_fail:
             raise SystemExit()
@@ -243,15 +248,18 @@ def load_checkpoint(
         print("→ Detected safetensors format.")
         state_dict = safe_load_file(path)
     elif os.path.isdir(path):
-        path_folder = load_best_val_loss_ckpt(path)
-        ckpt = torch.load(path_folder, map_location="cpu")
+        best_ckpt = load_best_val_loss_ckpt(path)
+        print(f"→ Loading best checkpoint: {best_ckpt}")
+        ckpt = torch.load(best_ckpt, map_location="cpu")
         state_dict = ckpt.get("state_dict", ckpt)
     else:
         ckpt = torch.load(path, map_location="cpu")
         state_dict = ckpt.get("state_dict", ckpt)
     print(f"→ Original state dict keys: {len(state_dict)}")
 
-    state_dict = strip_model_prefix_if_needed(state_dict, seg_module.state_dict(), verbose=False)
+    state_dict = strip_model_prefix_if_needed(
+        state_dict, seg_module.state_dict(), verbose=False
+    )
 
     model_dict = seg_module.state_dict()
     tasks = conf["labels"]
@@ -263,7 +271,7 @@ def load_checkpoint(
     for task in tasks:
         weight_keys = [
             f"model.main_decoders.{task}.seg_model.segmentation_head.0.weight",
-            f"main_decoders.{task}.seg_model.segmentation_head.0.weight"
+            f"main_decoders.{task}.seg_model.segmentation_head.0.weight",
         ]
         bias_keys = [k.replace("weight", "bias") for k in weight_keys]
         n_classes = len(conf["labels_configs"][task]["value_name"])
@@ -271,8 +279,17 @@ def load_checkpoint(
         matched = False
         for w_key, b_key in zip(weight_keys, bias_keys):
             pre_match = len(matched_tasks)
-            check_and_reinit_layer(state_dict, model_dict, w_key, b_key, n_classes,
-                                matched_tasks, reinit_tasks, task, reinit_counter)
+            check_and_reinit_layer(
+                state_dict,
+                model_dict,
+                w_key,
+                b_key,
+                n_classes,
+                matched_tasks,
+                reinit_tasks,
+                task,
+                reinit_counter,
+            )
             if len(matched_tasks) > pre_match:
                 matched = True
                 break
@@ -281,12 +298,26 @@ def load_checkpoint(
 
     # Auxiliary decoders
     for key in model_dict:
-        if key.startswith("model.aux_decoders.") and "seg_model.segmentation_head.0.weight" in key:
+        if (
+            key.startswith("model.aux_decoders.")
+            and "seg_model.segmentation_head.0.weight" in key
+        ):
             task_id = get_task_name_from_aux_key(key)
-            n_classes = len(conf["labels_configs"].get(task_id, {}).get("value_name", []))
+            n_classes = len(
+                conf["labels_configs"].get(task_id, {}).get("value_name", [])
+            )
             bias_key = key.replace("weight", "bias")
-            check_and_reinit_layer(state_dict, model_dict, key, bias_key, n_classes,
-                                   matched_tasks, reinit_tasks, task_id, reinit_counter)
+            check_and_reinit_layer(
+                state_dict,
+                model_dict,
+                key,
+                bias_key,
+                n_classes,
+                matched_tasks,
+                reinit_tasks,
+                task_id,
+                reinit_counter,
+            )
 
     # Criterion weights
     for task in tasks:
@@ -306,15 +337,25 @@ def load_checkpoint(
                 try:
                     state_dict[k] = interpolate_bias_table(state_dict[k], model_dict[k])
                 except Exception as e:
-                    print(f"⚠️  Interpolation failed for {k}: {e}. Reinitializing instead.")
+                    print(
+                        f"⚠️  Interpolation failed for {k}: {e}. Reinitializing instead."
+                    )
                     reinit_counter[0] += reinit_param(state_dict, model_dict, k)
             else:
-                print(f"→ Shape mismatch for {k}: checkpoint {ckpt_shape} vs model {model_shape}. Reinitializing...")
+                print(
+                    f"→ Shape mismatch for {k}: checkpoint {ckpt_shape} vs model {model_shape}. Reinitializing..."
+                )
                 reinit_counter[0] += reinit_param(state_dict, model_dict, k)
 
-    print("\nExample param BEFORE loading weights:", next(iter(seg_module.parameters())).view(-1)[:5])
+    print(
+        "\nExample param BEFORE loading weights:",
+        next(iter(seg_module.parameters())).view(-1)[:5],
+    )
     seg_module.load_state_dict(state_dict, strict=False)
-    print("Example param AFTER loading weights:", next(iter(seg_module.parameters())).view(-1)[:5])
+    print(
+        "Example param AFTER loading weights:",
+        next(iter(seg_module.parameters())).view(-1)[:5],
+    )
 
     # Summary
     print("\nCheckpoint load summary:")
@@ -323,6 +364,6 @@ def load_checkpoint(
     print(f"  - Total reinitialized tensors: {reinit_counter[0]}")
     print(f"  - Tasks defined in config:")
     for task in tasks:
-        ncls = len(conf['labels_configs'][task]['value_name'])
+        ncls = len(conf["labels_configs"][task]["value_name"])
         print(f"    • {task}: {ncls} classes")
     print("#" * 65 + "\n")

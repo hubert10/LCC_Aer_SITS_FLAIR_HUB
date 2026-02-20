@@ -8,7 +8,7 @@ def apply_numpy_augmentations(
     input_keys: List[str],
     label_keys: List[str],
     p_flip: float = 0.5,
-    p_rot: float = 0.5
+    p_rot: float = 0.5,
 ) -> Dict[str, np.ndarray]:
     """
     Applies the same random 2D augmentations to all input and label arrays within a single sample.

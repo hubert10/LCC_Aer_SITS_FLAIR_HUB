@@ -25,6 +25,8 @@ labels_configs:
             16 : 'ligneous'
             17 : 'mixed'
             18 : 'undefined'
+        
+        # masked classes: [clear cut, ligneous, mixed, other] → weight = 0
         value_weights: 
             default: 1
             default_exceptions:

@@ -47,7 +47,7 @@ def pad_tensor(x: np.ndarray, l: int, pad_value: int = 0) -> np.ndarray:
 
 def pad_collate_flair(sample_dict, pad_value=0):
     """
-    Collate function for batching and padding. 
+    Collate function for batching and padding.
     Pads only the relevant SENTINEL fields and keeps other fields unchanged.
     Args:
     - sample_dict (list): List of dictionaries where each dictionary represents a sample.
@@ -57,26 +57,33 @@ def pad_collate_flair(sample_dict, pad_value=0):
     """
 
     TO_PAD_KEYS = [
-        'SENTINEL2_TS', 'SENTINEL2_DATES',
-        'SENTINEL1-ASC_TS', 'SENTINEL1-ASC_DATES',
-        'SENTINEL1-DESC_TS', 'SENTINEL1-DESC_DATES'
+        "SENTINEL2_TS",
+        "SENTINEL2_DATES",
+        "SENTINEL1-ASC_TS",
+        "SENTINEL1-ASC_DATES",
+        "SENTINEL1-DESC_TS",
+        "SENTINEL1-DESC_DATES",
     ]
-    
+
     batch = {}
-    
+
     for key in sample_dict[0].keys():
         if key in TO_PAD_KEYS:
             data = [i[key] for i in sample_dict]
 
             if all(len(e) == 0 for e in data):
-                batch[key] = torch.empty((len(data), 0))  
+                batch[key] = torch.empty((len(data), 0))
                 continue
 
             sizes = [e.shape[0] for e in data if len(e) > 0]
             max_size = max(sizes) if sizes else 0
 
             padded_data = [
-                pad_tensor(d, max_size, pad_value=pad_value) if len(d) > 0 else torch.zeros((max_size,), dtype=d.dtype) 
+                (
+                    pad_tensor(d, max_size, pad_value=pad_value)
+                    if len(d) > 0
+                    else torch.zeros((max_size,), dtype=d.dtype)
+                )
                 for d in data
             ]
             batch[key] = torch.stack(padded_data, dim=0)
