@@ -2,7 +2,6 @@
 # Config best model
 # https://huggingface.co/IGNF/FLAIR-HUB_LC-L_swinbase-upernet
 
-
 modalities: 
 
     inputs:

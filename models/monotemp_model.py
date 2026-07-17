@@ -27,7 +27,18 @@ class DecoderWrapper(nn.Module):
         Returns:
             nn.Module: Output after passing through the segmentation head.
         """
+        
+        print("enc_feats 0:", features[0].shape)
+        print("enc_feats 1:", features[1].shape)
+        print("enc_feats 2:", features[2].shape)
+        print("enc_feats 3:", features[3].shape)
+        print("enc_feats 4:", features[4].shape)
+        print("enc_feats 5:", features[5].shape)
+        
+        
         decoder_output = self.decoder(*features)
+        # torch.Size([5, 64, 128, 128])
+        print("------------------------------------------decoder_output:", decoder_output.shape)
         return self.segmentation_head(decoder_output)
 
 
