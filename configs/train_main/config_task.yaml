@@ -11,7 +11,7 @@ paths :
     ckpt_model_path: "/my_data/Results/LCC_Aer_SITS_FLAIR_HUB/test-lib/"
 
 tasks: 
-    train: False
+    train: True
     train_tasks: 
         init_weights_only_from_ckpt: False
         resume_training_from_ckpt: False
